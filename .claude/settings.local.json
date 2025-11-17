@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "mcp__UnityMCP__manage_editor",
+      "mcp__UnityMCP__manage_scene",
+      "mcp__UnityMCP__manage_gameobject",
+      "mcp__UnityMCP__read_console",
+      "mcp__UnityMCP__list_resources",
+      "mcp__UnityMCP__read_resource"
     ],
     "deny": [],
     "ask": []
