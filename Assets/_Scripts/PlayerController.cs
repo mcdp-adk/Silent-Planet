@@ -1,10 +1,9 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace _Scripts
 {
-    [RequireComponent(typeof(CharacterController))]
-    public class PlayerController : MonoBehaviour, InputSystem_Actions.IPlayerActions
+    [RequireComponent(typeof(CharacterController), typeof(PlayerInputHandler))]
+    public class PlayerController : MonoBehaviour
     {
         #region 字段
 
@@ -14,7 +13,7 @@ namespace _Scripts
         [SerializeField] private float turnSpeed = 20f;
 
         private CharacterController _characterController;
-        private InputSystem_Actions _actions;
+        private PlayerInputHandler _inputHandler;
         private Vector2 _moveInput;
         private float _verticalVelocity;
 
@@ -25,23 +24,22 @@ namespace _Scripts
         private void Awake()
         {
             _characterController = GetComponent<CharacterController>();
-            _actions = new InputSystem_Actions();
-            _actions.Player.AddCallbacks(this);
+            _inputHandler = GetComponent<PlayerInputHandler>();
+
+            // 订阅输入事件
+            if (_inputHandler != null)
+            {
+                _inputHandler.OnMoveInput += HandleMoveInput;
+            }
         }
 
         private void OnDestroy()
         {
-            _actions.Dispose();
-        }
-
-        private void OnEnable()
-        {
-            _actions.Player.Enable();
-        }
-
-        private void OnDisable()
-        {
-            _actions.Player.Disable();
+            // 取消订阅输入事件
+            if (_inputHandler != null)
+            {
+                _inputHandler.OnMoveInput -= HandleMoveInput;
+            }
         }
 
         private void Update()
@@ -53,6 +51,11 @@ namespace _Scripts
         #endregion
 
         #region 私有方法
+
+        private void HandleMoveInput(Vector2 moveInput)
+        {
+            _moveInput = moveInput;
+        }
 
         private void ApplyGravity()
         {
@@ -78,24 +81,6 @@ namespace _Scripts
                 transform.forward = Vector3.Slerp(transform.forward, targetForward, turnSpeed * Time.deltaTime);
             }
         }
-
-        #endregion
-
-        #region IPlayerActions
-
-        public void OnMove(InputAction.CallbackContext context)
-        {
-            _moveInput = context.ReadValue<Vector2>();
-        }
-
-        public void OnLook(InputAction.CallbackContext context) { }
-        public void OnAttack(InputAction.CallbackContext context) { }
-        public void OnInteract(InputAction.CallbackContext context) { }
-        public void OnCrouch(InputAction.CallbackContext context) { }
-        public void OnJump(InputAction.CallbackContext context) { }
-        public void OnPrevious(InputAction.CallbackContext context) { }
-        public void OnNext(InputAction.CallbackContext context) { }
-        public void OnSprint(InputAction.CallbackContext context) { }
 
         #endregion
     }
