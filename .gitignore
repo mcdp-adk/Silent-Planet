@@ -101,5 +101,4 @@ InitTestScene*.unity*
 # Custom
 .vscode/
 .idea/
-.claude/
 .vsconfig
