@@ -54,9 +54,8 @@ public Action OnNextInput;               // 下一个
 public Action OnInteractTap;             // 短按交互
 public Action OnInteractHold;            // 长按交互
 
-// 跳跃事件 (区分 Tap/Hold/Release)
-public Action OnJumpTap;                 // 短按跳跃
-public Action OnJumpHold;                // 长按跳跃 (喷气背包)
+// 跳跃事件 (按下/释放，喷气背包由 PlayerMotor 判断)
+public Action OnJumpPressed;             // 跳跃按下
 public Action OnJumpReleased;            // 跳跃释放
 ```
 
@@ -68,7 +67,7 @@ private void Awake()
 {
     var inputManager = GetComponent<InputManager>();
     inputManager.OnMoveInput += HandleMove;
-    inputManager.OnJumpTap += HandleJump;
+    inputManager.OnJumpPressed += HandleJump;
 }
 
 // 2. 实现事件处理方法
@@ -86,7 +85,7 @@ private void HandleJump()
 private void OnDestroy()
 {
     inputManager.OnMoveInput -= HandleMove;
-    inputManager.OnJumpTap -= HandleJump;
+    inputManager.OnJumpPressed -= HandleJump;
 }
 ```
 
@@ -101,7 +100,7 @@ private void OnDestroy()
 | Move | Value (Vector2) | WASD/方向键 | 左摇杆 | 持续 |
 | Look | Value (Vector2) | 鼠标移动 | 右摇杆 | 持续 |
 | Attack | Button | 鼠标左键/Enter | 西键 (X) | 按下 |
-| Jump | Button | 空格 | 南键 (A) | Tap/Hold |
+| Jump | Button | 空格 | 南键 (A) | 按下/释放 |
 | Sprint | Button | 左 Shift | 左摇杆按下 | 按下 |
 | Interact | Button | E 键 | 北键 (Y) | Tap/Hold |
 | Crouch | Button | C 键 | 东键 (B) | 按下 |
@@ -133,27 +132,42 @@ UI 相关输入在 `UI` ActionMap 中 (已配置但未实现逻辑)：
 
 ### Tap vs Hold 区分
 
-`InputManager` 通过检查 `context.interaction` 类型来区分用户意图：
+`InputManager` 通过检查 `context.interaction` 类型来区分用户意图（用于 Interact 等动作）：
+
+```csharp
+public void OnInteract(InputAction.CallbackContext context)
+{
+    if (context.performed)
+    {
+        // Tap: 短按交互
+        if (context.interaction is UnityEngine.InputSystem.Interactions.TapInteraction)
+        {
+            OnInteractTap?.Invoke();
+        }
+        // Hold: 长按交互
+        else if (context.interaction is UnityEngine.InputSystem.Interactions.HoldInteraction)
+        {
+            OnInteractHold?.Invoke();
+        }
+    }
+}
+```
+
+### 跳跃输入 (按下/释放模式)
+
+跳跃使用简单的 started/canceled 模式，喷气背包时间判断由 `PlayerMotor` 处理：
 
 ```csharp
 public void OnJump(InputAction.CallbackContext context)
 {
-    if (context.performed)
+    if (context.started)
     {
-        // Tap: 短按跳跃
-        if (context.interaction is UnityEngine.InputSystem.Interactions.TapInteraction)
-        {
-            OnJumpTap?.Invoke();
-        }
-        // Hold: 长按启动喷气背包
-        else if (context.interaction is UnityEngine.InputSystem.Interactions.HoldInteraction)
-        {
-            OnJumpHold?.Invoke();
-        }
+        // 按下时触发
+        OnJumpPressed?.Invoke();
     }
     else if (context.canceled)
     {
-        // 释放按键
+        // 释放时触发
         OnJumpReleased?.Invoke();
     }
 }
@@ -225,8 +239,7 @@ private void ConnectInputToMovement()
     if (_inputManager != null && _playerMotor != null)
     {
         _inputManager.OnMoveInput += _playerMotor.SetMoveInput;
-        _inputManager.OnJumpTap += _playerMotor.OnJumpTap;
-        _inputManager.OnJumpHold += _playerMotor.OnJumpHold;
+        _inputManager.OnJumpPressed += _playerMotor.OnJumpPressed;
         _inputManager.OnJumpReleased += _playerMotor.OnJumpReleased;
     }
 }
@@ -236,8 +249,7 @@ private void DisconnectInputFromMovement()
     if (_inputManager != null && _playerMotor != null)
     {
         _inputManager.OnMoveInput -= _playerMotor.SetMoveInput;
-        _inputManager.OnJumpTap -= _playerMotor.OnJumpTap;
-        _inputManager.OnJumpHold -= _playerMotor.OnJumpHold;
+        _inputManager.OnJumpPressed -= _playerMotor.OnJumpPressed;
         _inputManager.OnJumpReleased -= _playerMotor.OnJumpReleased;
     }
 }

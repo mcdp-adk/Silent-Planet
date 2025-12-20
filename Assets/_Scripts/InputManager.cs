@@ -14,8 +14,7 @@ namespace _Scripts
         public Action OnInteractTap; // 短按交互
         public Action OnInteractHold; // 长按交互
         public Action OnCrouchInput;
-        public Action OnJumpTap; // 短按跳跃
-        public Action OnJumpHold; // 长按跳跃
+        public Action OnJumpPressed; // 跳跃按下
         public Action OnJumpReleased; // 跳跃释放
         public Action OnPreviousInput;
         public Action OnNextInput;
@@ -100,21 +99,14 @@ namespace _Scripts
 
         public void OnJump(InputAction.CallbackContext context)
         {
-            if (context.performed)
+            if (context.started)
             {
-                // performed 阶段区分 Tap 和 Hold
-                if (context.interaction is UnityEngine.InputSystem.Interactions.TapInteraction)
-                {
-                    OnJumpTap?.Invoke();
-                }
-                else if (context.interaction is UnityEngine.InputSystem.Interactions.HoldInteraction)
-                {
-                    OnJumpHold?.Invoke();
-                }
+                // 按下时触发
+                OnJumpPressed?.Invoke();
             }
             else if (context.canceled)
             {
-                // 输入释放时触发
+                // 释放时触发
                 OnJumpReleased?.Invoke();
             }
         }

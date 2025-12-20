@@ -42,8 +42,7 @@ namespace _Scripts
             if (_inputManager != null && _playerMotor != null)
             {
                 _inputManager.OnMoveInput += _playerMotor.SetMoveInput;
-                _inputManager.OnJumpTap += _playerMotor.OnJumpTap;
-                _inputManager.OnJumpHold += _playerMotor.OnJumpHold;
+                _inputManager.OnJumpPressed += _playerMotor.OnJumpPressed;
                 _inputManager.OnJumpReleased += _playerMotor.OnJumpReleased;
             }
         }
@@ -56,8 +55,7 @@ namespace _Scripts
             if (_inputManager != null && _playerMotor != null)
             {
                 _inputManager.OnMoveInput -= _playerMotor.SetMoveInput;
-                _inputManager.OnJumpTap -= _playerMotor.OnJumpTap;
-                _inputManager.OnJumpHold -= _playerMotor.OnJumpHold;
+                _inputManager.OnJumpPressed -= _playerMotor.OnJumpPressed;
                 _inputManager.OnJumpReleased -= _playerMotor.OnJumpReleased;
             }
         }
