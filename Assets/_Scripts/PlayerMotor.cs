@@ -12,8 +12,8 @@ namespace _Scripts
     {
         #region 配置参数
 
-        [Header("LAYERS")] [Tooltip("玩家所在层级，用于碰撞检测排除")] [SerializeField]
-        private LayerMask playerLayer;
+        [Header("LAYERS")] [Tooltip("环境层级，用于地面和天花板检测")] [SerializeField]
+        private LayerMask environmentLayer;
 
         [Header("MOVEMENT")] [Tooltip("最大水平移动速度")] [SerializeField]
         private float maxSpeed = 14f;
@@ -38,14 +38,22 @@ namespace _Scripts
         [Tooltip("土狼时间（离开地面后仍可跳跃的时间）")] [SerializeField]
         private float coyoteTime = 0.15f;
 
-        [Tooltip("跳跃缓冲时间（落地前预输入跳跃的有效时间）")] [SerializeField]
-        private float jumpBuffer = 0.2f;
-
         [Header("GROUND CHECK")] [Tooltip("地面检测距离")] [SerializeField]
         private float grounderDistance = 0.1f;
 
         [Tooltip("着地力（防止在斜坡上滑动）")] [SerializeField]
         private float groundingForce = -1.5f;
+
+        [Header("JETPACK")] [Tooltip("喷气背包推力")] [SerializeField]
+        private float jetpackForce = 160f;
+
+        [Tooltip("最大上升速度")] [SerializeField] private float maxRiseSpeed = 15f;
+
+        [Tooltip("最大燃料时长（秒）")] [SerializeField]
+        private float jetpackMaxFuel = 2f;
+
+        [Tooltip("燃料恢复速率（每秒）")] [SerializeField]
+        private float jetpackFuelRecovery = 0.5f;
 
         #endregion
 
@@ -63,55 +71,38 @@ namespace _Scripts
 
         #endregion
 
-        #region 组件引用
+        #region 私有字段
 
+        // 组件引用
         private Rigidbody _rb;
         private CapsuleCollider _col;
 
-        #endregion
-
-        #region 输入状态
-
+        // 输入
         private Vector2 _moveInput;
 
-        #endregion
-
-        #region 移动状态
-
+        // 移动
         private Vector3 _frameVelocity;
         private float _time;
 
-        #endregion
-
-        #region 地面检测状态
-
+        // 地面检测
         private bool _grounded;
         private float _frameLeftGrounded = float.MinValue;
 
-        #endregion
-
-        #region 跳跃状态
-
+        // 跳跃
         private bool _jumpToConsume;
-        private bool _bufferedJumpUsable;
         private bool _endedJumpEarly;
         private bool _coyoteUsable;
-        private float _timeJumpWasPressed;
 
-        #endregion
+        // 喷气背包
+        private bool _jetpackActive;
+        private float _jetpackFuel;
 
-        #region 朝向状态
-
+        // 朝向
         private bool _facingRight = true;
 
         #endregion
 
         #region 计算属性
-
-        /// <summary>
-        /// 是否有缓冲跳跃可用
-        /// </summary>
-        private bool HasBufferedJump => _bufferedJumpUsable && _time < _timeJumpWasPressed + jumpBuffer;
 
         /// <summary>
         /// 是否可使用土狼时间跳跃
@@ -132,6 +123,9 @@ namespace _Scripts
             _rb.freezeRotation = true;
             _rb.interpolation = RigidbodyInterpolation.Interpolate;
             _rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+
+            // 初始化喷气背包燃料
+            _jetpackFuel = jetpackMaxFuel;
         }
 
         private void Update()
@@ -145,7 +139,9 @@ namespace _Scripts
             HandleJump();
             HandleHorizontalMovement();
             HandleGravity();
+            HandleJetpack();
             HandleFacing();
+            HandleFuelRecovery();
             ApplyMovement();
         }
 
@@ -166,8 +162,16 @@ namespace _Scripts
         /// </summary>
         public void OnJumpPressed()
         {
-            _jumpToConsume = true;
-            _timeJumpWasPressed = _time;
+            if (_grounded || CanUseCoyote)
+            {
+                // 地面或土狼时间内：跳跃
+                _jumpToConsume = true;
+            }
+            else if (_jetpackFuel > 0)
+            {
+                // 空中且有燃料：启动喷气背包
+                _jetpackActive = true;
+            }
         }
 
         /// <summary>
@@ -175,21 +179,26 @@ namespace _Scripts
         /// </summary>
         public void OnJumpReleased()
         {
-            // 如果在上升过程中释放跳跃，标记为提前结束
-            if (!_grounded && _rb.linearVelocity.y > 0)
+            if (_jetpackActive)
             {
+                // 关闭喷气背包
+                _jetpackActive = false;
+            }
+            else if (!_grounded && _rb.linearVelocity.y > 0)
+            {
+                // 非喷气状态下的提前释放惩罚
                 _endedJumpEarly = true;
             }
         }
 
         #endregion
 
-        #region 碰撞检测
+        #region 私有方法
 
         private void CheckCollisions()
         {
             // 地面检测 - 从胶囊体底部向下投射
-            Vector3 origin = GetGroundCheckOrigin();
+            Vector3 origin = transform.position + Vector3.up * _col.radius;
             float radius = _col.radius * 0.9f;
 
             bool groundHit = Physics.SphereCast(
@@ -198,19 +207,19 @@ namespace _Scripts
                 Vector3.down,
                 out _,
                 grounderDistance,
-                ~playerLayer,
+                environmentLayer,
                 QueryTriggerInteraction.Ignore
             );
 
             // 天花板检测
-            Vector3 ceilingOrigin = GetCeilingCheckOrigin();
+            Vector3 ceilingOrigin = transform.position + Vector3.up * (_col.height - _col.radius);
             bool ceilingHit = Physics.SphereCast(
                 ceilingOrigin,
                 radius,
                 Vector3.up,
                 out _,
                 grounderDistance,
-                ~playerLayer,
+                environmentLayer,
                 QueryTriggerInteraction.Ignore
             );
 
@@ -226,7 +235,6 @@ namespace _Scripts
                 // 刚着地
                 _grounded = true;
                 _coyoteUsable = true;
-                _bufferedJumpUsable = true;
                 _endedJumpEarly = false;
                 GroundedChanged?.Invoke(true, Mathf.Abs(_frameVelocity.y));
             }
@@ -239,54 +247,23 @@ namespace _Scripts
             }
         }
 
-        private Vector3 GetGroundCheckOrigin()
-        {
-            // 胶囊体底部球心位置
-            return transform.position + Vector3.up * _col.radius;
-        }
-
-        private Vector3 GetCeilingCheckOrigin()
-        {
-            // 胶囊体顶部球心位置
-            return transform.position + Vector3.up * (_col.height - _col.radius);
-        }
-
-        #endregion
-
-        #region 跳跃系统
-
         private void HandleJump()
         {
-            // 没有跳跃请求且没有缓冲跳跃，直接返回
-            if (!_jumpToConsume && !HasBufferedJump) return;
+            if (!_jumpToConsume) return;
 
-            // 在地面上或土狼时间内可以跳跃
             if (_grounded || CanUseCoyote)
             {
-                ExecuteJump();
+                _endedJumpEarly = false;
+                _coyoteUsable = false;
+                _frameVelocity.y = jumpPower;
+                Jumped?.Invoke();
             }
 
-            // 消费跳跃输入
             _jumpToConsume = false;
         }
 
-        private void ExecuteJump()
-        {
-            _endedJumpEarly = false;
-            _timeJumpWasPressed = 0f;
-            _bufferedJumpUsable = false;
-            _coyoteUsable = false;
-            _frameVelocity.y = jumpPower;
-            Jumped?.Invoke();
-        }
-
-        #endregion
-
-        #region 水平移动
-
         private void HandleHorizontalMovement()
         {
-            // 横板游戏只使用 X 轴移动
             float inputX = _moveInput.x;
 
             if (Mathf.Approximately(inputX, 0f))
@@ -306,20 +283,15 @@ namespace _Scripts
             _frameVelocity.z = 0f;
         }
 
-        #endregion
-
-        #region 重力系统
-
         private void HandleGravity()
         {
-            if (_grounded && _frameVelocity.y <= 0f)
+            if (_grounded && _frameVelocity.y <= 0f && !_jetpackActive)
             {
                 // 在地面上时施加着地力（防止在斜坡上滑动）
                 _frameVelocity.y = groundingForce;
             }
             else
             {
-                // 空中重力
                 float gravity = fallAcceleration;
 
                 // 提前释放跳跃时增加重力
@@ -328,7 +300,6 @@ namespace _Scripts
                     gravity *= jumpEndEarlyGravityModifier;
                 }
 
-                // 应用重力，限制最大下落速度
                 _frameVelocity.y = Mathf.MoveTowards(
                     _frameVelocity.y,
                     -maxFallSpeed,
@@ -337,30 +308,47 @@ namespace _Scripts
             }
         }
 
-        #endregion
+        private void HandleJetpack()
+        {
+            if (_jetpackActive && _jetpackFuel > 0)
+            {
+                // 应用推力（惯性抵抗方式）
+                _frameVelocity.y += jetpackForce * Time.fixedDeltaTime;
 
-        #region 朝向处理
+                // 限制最大上升速度
+                _frameVelocity.y = Mathf.Min(_frameVelocity.y, maxRiseSpeed);
+
+                // 消耗燃料
+                _jetpackFuel -= Time.fixedDeltaTime;
+
+                if (_jetpackFuel <= 0)
+                {
+                    _jetpackFuel = 0;
+                    _jetpackActive = false;
+                }
+            }
+        }
+
+        private void HandleFuelRecovery()
+        {
+            if (_grounded && !_jetpackActive && _jetpackFuel < jetpackMaxFuel)
+            {
+                _jetpackFuel += jetpackFuelRecovery * Time.fixedDeltaTime;
+                _jetpackFuel = Mathf.Min(_jetpackFuel, jetpackMaxFuel);
+            }
+        }
 
         private void HandleFacing()
         {
-            // 只有在有水平输入时才更新朝向
             if (Mathf.Approximately(_moveInput.x, 0f)) return;
 
             bool shouldFaceRight = _moveInput.x > 0f;
-
-            // 朝向没有变化，直接返回
             if (shouldFaceRight == _facingRight) return;
 
             _facingRight = shouldFaceRight;
-
-            // 目标旋转：右朝向 90°，左朝向 -90°（横板游戏面向 X 轴）
             float targetYRotation = _facingRight ? 90f : -90f;
             transform.rotation = Quaternion.Euler(0f, targetYRotation, 0f);
         }
-
-        #endregion
-
-        #region 应用移动
 
         private void ApplyMovement()
         {
@@ -380,12 +368,12 @@ namespace _Scripts
 
             // 地面检测范围
             Gizmos.color = _grounded ? Color.green : Color.red;
-            Vector3 groundOrigin = GetGroundCheckOrigin();
+            Vector3 groundOrigin = transform.position + Vector3.up * _col.radius;
             Gizmos.DrawWireSphere(groundOrigin + Vector3.down * grounderDistance, radius);
 
             // 天花板检测范围
             Gizmos.color = Color.cyan;
-            Vector3 ceilingOrigin = GetCeilingCheckOrigin();
+            Vector3 ceilingOrigin = transform.position + Vector3.up * (_col.height - _col.radius);
             Gizmos.DrawWireSphere(ceilingOrigin + Vector3.up * grounderDistance, radius);
         }
 #endif
