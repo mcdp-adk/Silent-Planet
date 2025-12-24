@@ -12,7 +12,7 @@ namespace _Scripts
     {
         #region 配置参数
 
-        [Header("LAYERS")] [Tooltip("环境层级，用于地面和天花板检测")] [SerializeField]
+        [Header("LAYERS")] [Tooltip("环境层级，用于地面检测")] [SerializeField]
         private LayerMask environmentLayer;
 
         [Header("MOVEMENT")] [Tooltip("最大水平移动速度")] [SerializeField]
@@ -135,6 +135,9 @@ namespace _Scripts
 
         private void FixedUpdate()
         {
+            // 读取物理引擎结果
+            _frameVelocity = _rb.linearVelocity;
+
             CheckCollisions();
             HandleJump();
             HandleHorizontalMovement();
@@ -210,24 +213,6 @@ namespace _Scripts
                 environmentLayer,
                 QueryTriggerInteraction.Ignore
             );
-
-            // 天花板检测
-            Vector3 ceilingOrigin = transform.position + Vector3.up * (_col.height - _col.radius);
-            bool ceilingHit = Physics.SphereCast(
-                ceilingOrigin,
-                radius,
-                Vector3.up,
-                out _,
-                grounderDistance,
-                environmentLayer,
-                QueryTriggerInteraction.Ignore
-            );
-
-            // 撞到天花板时清除向上速度
-            if (ceilingHit)
-            {
-                _frameVelocity.y = Mathf.Min(0, _frameVelocity.y);
-            }
 
             // 着地状态变化处理
             if (!_grounded && groundHit)
@@ -364,17 +349,11 @@ namespace _Scripts
         {
             if (_col == null) return;
 
-            float radius = _col.radius * 0.9f;
-
             // 地面检测范围
+            float radius = _col.radius * 0.9f;
             Gizmos.color = _grounded ? Color.green : Color.red;
             Vector3 groundOrigin = transform.position + Vector3.up * _col.radius;
             Gizmos.DrawWireSphere(groundOrigin + Vector3.down * grounderDistance, radius);
-
-            // 天花板检测范围
-            Gizmos.color = Color.cyan;
-            Vector3 ceilingOrigin = transform.position + Vector3.up * (_col.height - _col.radius);
-            Gizmos.DrawWireSphere(ceilingOrigin + Vector3.up * grounderDistance, radius);
         }
 #endif
 
