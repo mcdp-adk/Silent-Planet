@@ -2,13 +2,14 @@ using UnityEngine;
 
 namespace _Scripts
 {
-    [RequireComponent(typeof(InputManager), typeof(PlayerMotor))]
+    [RequireComponent(typeof(InputManager), typeof(PlayerMotor), typeof(RopeSystem))]
     public class PlayerGlue : MonoBehaviour
     {
         #region 字段
 
         private InputManager _inputManager;
         private PlayerMotor _playerMotor;
+        private RopeSystem _ropeSystem;
 
         #endregion
 
@@ -19,15 +20,18 @@ namespace _Scripts
             // 获取组件引用
             _inputManager = GetComponent<InputManager>();
             _playerMotor = GetComponent<PlayerMotor>();
+            _ropeSystem = GetComponent<RopeSystem>();
 
-            // 连接输入系统和移动系统
+            // 连接输入系统和各个模块
             ConnectInputToMovement();
+            ConnectInputToRope();
         }
 
         private void OnDestroy()
         {
             // 断开连接
             DisconnectInputFromMovement();
+            DisconnectInputFromRope();
         }
 
         #endregion
@@ -57,6 +61,28 @@ namespace _Scripts
                 _inputManager.OnMoveInput -= _playerMotor.SetMoveInput;
                 _inputManager.OnJumpPressed -= _playerMotor.OnJumpPressed;
                 _inputManager.OnJumpReleased -= _playerMotor.OnJumpReleased;
+            }
+        }
+
+        /// <summary>
+        /// 连接输入事件到绳索系统
+        /// </summary>
+        private void ConnectInputToRope()
+        {
+            if (_inputManager != null && _ropeSystem != null)
+            {
+                _inputManager.OnInteractHold += _ropeSystem.ToggleRope;
+            }
+        }
+
+        /// <summary>
+        /// 断开绳索系统输入连接
+        /// </summary>
+        private void DisconnectInputFromRope()
+        {
+            if (_inputManager != null && _ropeSystem != null)
+            {
+                _inputManager.OnInteractHold -= _ropeSystem.ToggleRope;
             }
         }
 

@@ -97,9 +97,10 @@ GameObject:
   - component: {fileID: 1928517224182726877}
   - component: {fileID: 8793891182773017030}
   - component: {fileID: 5702677291273809753}
-  - component: {fileID: 7837718442032853266}
-  - component: {fileID: 8268655354289419802}
   - component: {fileID: 1141348238590377764}
+  - component: {fileID: 8268655354289419802}
+  - component: {fileID: 8698950264854001530}
+  - component: {fileID: 7837718442032853266}
   m_Layer: 11
   m_Name: Player
   m_TagString: Untagged
@@ -158,7 +159,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3943691263306376642}
-  m_Material: {fileID: 13400000, guid: cc75aabbfef9c3340a18e3f6aafdf4b8, type: 2}
+  m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -174,7 +175,7 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
---- !u!114 &7837718442032853266
+--- !u!114 &1141348238590377764
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -183,7 +184,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 3943691263306376642}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c49b6b9c5ada46b4c9c163b533e69a92, type: 3}
+  m_Script: {fileID: 11500000, guid: ae6fa1beb9b847598f1ed97255f33f5b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!114 &8268655354289419802
@@ -216,7 +217,7 @@ MonoBehaviour:
   maxRiseSpeed: 15
   jetpackMaxFuel: 2
   jetpackFuelRecovery: 0.5
---- !u!114 &1141348238590377764
+--- !u!114 &8698950264854001530
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -225,7 +226,37 @@ MonoBehaviour:
   m_GameObject: {fileID: 3943691263306376642}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae6fa1beb9b847598f1ed97255f33f5b, type: 3}
+  m_Script: {fileID: 11500000, guid: 8db8ad8224324b0d9524c5052bd4e52e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nodeCount: 20
+  nodeSpacing: 0.5
+  nodeMass: 0.1
+  nodeDamping: 1
+  springStrength: 1000
+  springDamper: 0.2
+  colliderRadius: 0.2
+  ropeLayer:
+    serializedVersion: 2
+    m_Bits: 8192
+  playerAnchorOffset: {x: 0, y: 1, z: 0}
+  playerSpringStrength: 100
+  playerSpringDamper: 0.2
+  playerMassScale: 1
+  connectedMassScale: 1
+  gizmoColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  lineWidth: 0.1
+  lineMaterial: {fileID: 2100000, guid: 69c3c648559bfd34eaae3ff327107596, type: 2}
+--- !u!114 &7837718442032853266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3943691263306376642}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c49b6b9c5ada46b4c9c163b533e69a92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &8489324967334031634
