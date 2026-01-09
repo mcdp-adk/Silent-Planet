@@ -187,6 +187,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae6fa1beb9b847598f1ed97255f33f5b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  motorSettings: {fileID: 11400000, guid: 7565a675a5acc224c890756d8fad9ae6, type: 2}
+  ropeSettings: {fileID: 11400000, guid: 54a1693a5486c6442a244c998af7edc9, type: 2}
 --- !u!114 &8268655354289419802
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -199,24 +201,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16e4ea817cc8db9469a001e3ce650400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  environmentLayer:
-    serializedVersion: 2
-    m_Bits: 4096
-  maxSpeed: 14
-  acceleration: 120
-  groundDeceleration: 60
-  airDeceleration: 30
-  jumpPower: 12
-  maxFallSpeed: 20
-  fallAcceleration: 50
-  jumpEndEarlyGravityModifier: 3
-  coyoteTime: 0.15
-  grounderDistance: 0.1
-  groundingForce: -1.5
-  jetpackForce: 160
-  maxRiseSpeed: 15
-  jetpackMaxFuel: 2
-  jetpackFuelRecovery: 0.5
 --- !u!114 &8698950264854001530
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,24 +213,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8db8ad8224324b0d9524c5052bd4e52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nodeCount: 20
-  nodeSpacing: 0.5
-  nodeMass: 0.1
-  nodeDamping: 1
-  springStrength: 1000
-  springDamper: 0.2
-  colliderRadius: 0.2
-  ropeLayer:
-    serializedVersion: 2
-    m_Bits: 8192
-  playerAnchorOffset: {x: 0, y: 1, z: 0}
-  playerSpringStrength: 100
-  playerSpringDamper: 0.2
-  playerMassScale: 1
-  connectedMassScale: 1
-  gizmoColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  lineWidth: 0.1
-  lineMaterial: {fileID: 2100000, guid: 69c3c648559bfd34eaae3ff327107596, type: 2}
 --- !u!114 &7837718442032853266
 MonoBehaviour:
   m_ObjectHideFlags: 0

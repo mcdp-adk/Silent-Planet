@@ -1,4 +1,5 @@
 using System;
+using _Scripts.Settings;
 using UnityEngine;
 
 namespace _Scripts
@@ -10,50 +11,14 @@ namespace _Scripts
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
     public class PlayerMotor : MonoBehaviour
     {
-        #region 配置参数
+        #region 配置
 
-        [Header("LAYERS")] [Tooltip("环境层级，用于地面检测")] [SerializeField]
-        private LayerMask environmentLayer;
+        private PlayerMotorSettings _settings;
 
-        [Header("MOVEMENT")] [Tooltip("最大水平移动速度")] [SerializeField]
-        private float maxSpeed = 14f;
-
-        [Tooltip("加速度")] [SerializeField] private float acceleration = 120f;
-
-        [Tooltip("地面减速度")] [SerializeField] private float groundDeceleration = 60f;
-
-        [Tooltip("空中减速度")] [SerializeField] private float airDeceleration = 30f;
-
-        [Header("JUMP")] [Tooltip("跳跃初速度")] [SerializeField]
-        private float jumpPower = 12f;
-
-        [Tooltip("最大下落速度")] [SerializeField] private float maxFallSpeed = 20f;
-
-        [Tooltip("下落加速度（空中重力）")] [SerializeField]
-        private float fallAcceleration = 50f;
-
-        [Tooltip("提前释放跳跃时的重力倍增器")] [SerializeField]
-        private float jumpEndEarlyGravityModifier = 3f;
-
-        [Tooltip("土狼时间（离开地面后仍可跳跃的时间）")] [SerializeField]
-        private float coyoteTime = 0.15f;
-
-        [Header("GROUND CHECK")] [Tooltip("地面检测距离")] [SerializeField]
-        private float grounderDistance = 0.1f;
-
-        [Tooltip("着地力（防止在斜坡上滑动）")] [SerializeField]
-        private float groundingForce = -1.5f;
-
-        [Header("JETPACK")] [Tooltip("喷气背包推力")] [SerializeField]
-        private float jetpackForce = 160f;
-
-        [Tooltip("最大上升速度")] [SerializeField] private float maxRiseSpeed = 15f;
-
-        [Tooltip("最大燃料时长（秒）")] [SerializeField]
-        private float jetpackMaxFuel = 2f;
-
-        [Tooltip("燃料恢复速率（每秒）")] [SerializeField]
-        private float jetpackFuelRecovery = 0.5f;
+        public void Initialize(PlayerMotorSettings settings)
+        {
+            _settings = settings;
+        }
 
         #endregion
 
@@ -107,7 +72,7 @@ namespace _Scripts
         /// <summary>
         /// 是否可使用土狼时间跳跃
         /// </summary>
-        private bool CanUseCoyote => _coyoteUsable && !_grounded && _time < _frameLeftGrounded + coyoteTime;
+        private bool CanUseCoyote => _coyoteUsable && !_grounded && _time < _frameLeftGrounded + _settings.coyoteTime;
 
         #endregion
 
@@ -117,7 +82,10 @@ namespace _Scripts
         {
             _rb = GetComponent<Rigidbody>();
             _col = GetComponent<CapsuleCollider>();
+        }
 
+        private void Start()
+        {
             // 配置 Rigidbody
             _rb.useGravity = false;
             _rb.freezeRotation = true;
@@ -125,7 +93,7 @@ namespace _Scripts
             _rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
             // 初始化喷气背包燃料
-            _jetpackFuel = jetpackMaxFuel;
+            _jetpackFuel = _settings.jetpackMaxFuel;
         }
 
         private void Update()
@@ -146,6 +114,17 @@ namespace _Scripts
             HandleFacing();
             HandleFuelRecovery();
             ApplyMovement();
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (_col == null || _settings == null) return;
+
+            // 地面检测范围
+            float radius = _col.radius * 0.9f;
+            Gizmos.color = _grounded ? Color.green : Color.red;
+            Vector3 groundOrigin = transform.position + Vector3.up * _col.radius;
+            Gizmos.DrawWireSphere(groundOrigin + Vector3.down * _settings.grounderDistance, radius);
         }
 
         #endregion
@@ -209,8 +188,8 @@ namespace _Scripts
                 radius,
                 Vector3.down,
                 out _,
-                grounderDistance,
-                environmentLayer,
+                _settings.grounderDistance,
+                _settings.environmentLayer,
                 QueryTriggerInteraction.Ignore
             );
 
@@ -240,7 +219,7 @@ namespace _Scripts
             {
                 _endedJumpEarly = false;
                 _coyoteUsable = false;
-                _frameVelocity.y = jumpPower;
+                _frameVelocity.y = _settings.jumpPower;
                 Jumped?.Invoke();
             }
 
@@ -254,14 +233,15 @@ namespace _Scripts
             if (Mathf.Approximately(inputX, 0f))
             {
                 // 无输入时减速
-                float deceleration = _grounded ? groundDeceleration : airDeceleration;
+                float deceleration = _grounded ? _settings.groundDeceleration : _settings.airDeceleration;
                 _frameVelocity.x = Mathf.MoveTowards(_frameVelocity.x, 0f, deceleration * Time.fixedDeltaTime);
             }
             else
             {
                 // 有输入时加速
-                float targetSpeed = inputX * maxSpeed;
-                _frameVelocity.x = Mathf.MoveTowards(_frameVelocity.x, targetSpeed, acceleration * Time.fixedDeltaTime);
+                float targetSpeed = inputX * _settings.maxSpeed;
+                _frameVelocity.x = Mathf.MoveTowards(_frameVelocity.x, targetSpeed,
+                    _settings.acceleration * Time.fixedDeltaTime);
             }
 
             // 横板游戏锁定 Z 轴
@@ -273,21 +253,21 @@ namespace _Scripts
             if (_grounded && _frameVelocity.y <= 0f && !_jetpackActive)
             {
                 // 在地面上时施加着地力（防止在斜坡上滑动）
-                _frameVelocity.y = groundingForce;
+                _frameVelocity.y = _settings.groundingForce;
             }
             else
             {
-                float gravity = fallAcceleration;
+                float gravity = _settings.fallAcceleration;
 
                 // 提前释放跳跃时增加重力
                 if (_endedJumpEarly && _frameVelocity.y > 0)
                 {
-                    gravity *= jumpEndEarlyGravityModifier;
+                    gravity *= _settings.jumpEndEarlyGravityModifier;
                 }
 
                 _frameVelocity.y = Mathf.MoveTowards(
                     _frameVelocity.y,
-                    -maxFallSpeed,
+                    -_settings.maxFallSpeed,
                     gravity * Time.fixedDeltaTime
                 );
             }
@@ -298,10 +278,10 @@ namespace _Scripts
             if (_jetpackActive && _jetpackFuel > 0)
             {
                 // 应用推力（惯性抵抗方式）
-                _frameVelocity.y += jetpackForce * Time.fixedDeltaTime;
+                _frameVelocity.y += _settings.jetpackForce * Time.fixedDeltaTime;
 
                 // 限制最大上升速度
-                _frameVelocity.y = Mathf.Min(_frameVelocity.y, maxRiseSpeed);
+                _frameVelocity.y = Mathf.Min(_frameVelocity.y, _settings.maxRiseSpeed);
 
                 // 消耗燃料
                 _jetpackFuel -= Time.fixedDeltaTime;
@@ -316,10 +296,10 @@ namespace _Scripts
 
         private void HandleFuelRecovery()
         {
-            if (_grounded && !_jetpackActive && _jetpackFuel < jetpackMaxFuel)
+            if (_grounded && !_jetpackActive && _jetpackFuel < _settings.jetpackMaxFuel)
             {
-                _jetpackFuel += jetpackFuelRecovery * Time.fixedDeltaTime;
-                _jetpackFuel = Mathf.Min(_jetpackFuel, jetpackMaxFuel);
+                _jetpackFuel += _settings.jetpackFuelRecovery * Time.fixedDeltaTime;
+                _jetpackFuel = Mathf.Min(_jetpackFuel, _settings.jetpackMaxFuel);
             }
         }
 
@@ -339,23 +319,6 @@ namespace _Scripts
         {
             _rb.linearVelocity = _frameVelocity;
         }
-
-        #endregion
-
-        #region 调试可视化
-
-#if UNITY_EDITOR
-        private void OnDrawGizmosSelected()
-        {
-            if (_col == null) return;
-
-            // 地面检测范围
-            float radius = _col.radius * 0.9f;
-            Gizmos.color = _grounded ? Color.green : Color.red;
-            Vector3 groundOrigin = transform.position + Vector3.up * _col.radius;
-            Gizmos.DrawWireSphere(groundOrigin + Vector3.down * grounderDistance, radius);
-        }
-#endif
 
         #endregion
     }

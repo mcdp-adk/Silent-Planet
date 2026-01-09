@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using _Scripts.Settings;
 using UnityEngine;
 
 namespace _Scripts
@@ -9,46 +10,14 @@ namespace _Scripts
     /// </summary>
     public class RopeSystem : MonoBehaviour
     {
-        #region 绳索结构
+        #region 配置
 
-        [Header("绳索结构")] [SerializeField] private int nodeCount = 20;
-        [SerializeField] private float nodeSpacing = 0.5f;
+        private RopeSystemSettings _settings;
 
-        #endregion
-
-        #region 物理参数
-
-        [Header("物理参数")] [SerializeField] private float nodeMass = 0.1f;
-        [SerializeField] private float nodeDamping = 1f;
-        [SerializeField] private float springStrength = 1000f;
-        [SerializeField] private float springDamper = 0.2f;
-
-        #endregion
-
-        #region 碰撞参数
-
-        [Header("碰撞参数")] [SerializeField] private float colliderRadius = 0.2f;
-        [SerializeField] private LayerMask ropeLayer;
-
-        #endregion
-
-        #region Player 连接参数
-
-        [Header("Player 连接参数")] [SerializeField]
-        private Vector3 playerAnchorOffset = new Vector3(0, 1, 0);
-
-        [SerializeField] private float playerSpringStrength = 100f;
-        [SerializeField] private float playerSpringDamper = 0.2f;
-        [SerializeField] private float playerMassScale = 1f;
-        [SerializeField] private float connectedMassScale = 1f;
-
-        #endregion
-
-        #region 可视化
-
-        [Header("可视化")] [SerializeField] private Color gizmoColor = Color.yellow;
-        [SerializeField] private float lineWidth = 0.1f;
-        [SerializeField] private Material lineMaterial;
+        public void Initialize(RopeSystemSettings settings)
+        {
+            _settings = settings;
+        }
 
         #endregion
 
@@ -70,7 +39,7 @@ namespace _Scripts
 
         #region Mono 生命周期
 
-        private void Awake()
+        private void Start()
         {
             IsDeployed = false;
         }
@@ -82,14 +51,14 @@ namespace _Scripts
 
         private void OnDrawGizmos()
         {
-            if (!IsDeployed || _nodes.Count == 0) return;
+            if (!IsDeployed || _nodes.Count == 0 || _settings == null) return;
 
-            Gizmos.color = gizmoColor;
+            Gizmos.color = _settings.gizmoColor;
             foreach (var node in _nodes)
             {
                 if (node != null)
                 {
-                    Gizmos.DrawWireSphere(node.position, colliderRadius);
+                    Gizmos.DrawWireSphere(node.position, _settings.colliderRadius);
                 }
             }
         }
@@ -118,7 +87,7 @@ namespace _Scripts
         {
             if (IsDeployed) return;
 
-            var anchorPosition = transform.position + playerAnchorOffset;
+            var anchorPosition = transform.position + _settings.playerAnchorOffset;
 
             if (!_nodesCreated)
             {
@@ -181,7 +150,7 @@ namespace _Scripts
             ConfigureLineRenderer();
 
             // 创建节点
-            for (int i = 0; i < nodeCount; i++)
+            for (int i = 0; i < _settings.nodeCount; i++)
             {
                 var node = CreateNode(i, anchorPosition);
                 _nodes.Add(node);
@@ -202,12 +171,12 @@ namespace _Scripts
             var nodeObj = new GameObject($"Node_{index}");
             nodeObj.transform.SetParent(_ropeContainer.transform);
             nodeObj.transform.position = position;
-            nodeObj.layer = GetLayerFromMask(ropeLayer);
+            nodeObj.layer = GetLayerFromMask(_settings.ropeLayer);
 
             // 添加 Rigidbody
             var rb = nodeObj.AddComponent<Rigidbody>();
-            rb.mass = nodeMass;
-            rb.linearDamping = nodeDamping;
+            rb.mass = _settings.nodeMass;
+            rb.linearDamping = _settings.nodeDamping;
             rb.constraints = RigidbodyConstraints.FreezeRotation;
 
             // 锚点节点设为 Kinematic
@@ -218,7 +187,7 @@ namespace _Scripts
 
             // 添加 SphereCollider
             var col = nodeObj.AddComponent<SphereCollider>();
-            col.radius = colliderRadius;
+            col.radius = _settings.colliderRadius;
 
             return rb;
         }
@@ -233,10 +202,10 @@ namespace _Scripts
             joint.connectedBody = connectedNode;
             joint.anchor = Vector3.zero;
             joint.connectedAnchor = Vector3.zero;
-            joint.spring = springStrength;
-            joint.damper = springDamper;
+            joint.spring = _settings.springStrength;
+            joint.damper = _settings.springDamper;
             joint.minDistance = 0f;
-            joint.maxDistance = nodeSpacing;
+            joint.maxDistance = _settings.nodeSpacing;
         }
 
         /// <summary>
@@ -248,14 +217,14 @@ namespace _Scripts
             _playerSpringJoint = gameObject.AddComponent<SpringJoint>();
             _playerSpringJoint.autoConfigureConnectedAnchor = false;
             _playerSpringJoint.connectedBody = GetLastNode();
-            _playerSpringJoint.anchor = playerAnchorOffset;
+            _playerSpringJoint.anchor = _settings.playerAnchorOffset;
             _playerSpringJoint.connectedAnchor = Vector3.zero;
-            _playerSpringJoint.spring = playerSpringStrength;
-            _playerSpringJoint.damper = playerSpringDamper;
+            _playerSpringJoint.spring = _settings.playerSpringStrength;
+            _playerSpringJoint.damper = _settings.playerSpringDamper;
             _playerSpringJoint.minDistance = 0f;
             _playerSpringJoint.maxDistance = 0f;
-            _playerSpringJoint.massScale = playerMassScale;
-            _playerSpringJoint.connectedMassScale = connectedMassScale;
+            _playerSpringJoint.massScale = _settings.playerMassScale;
+            _playerSpringJoint.connectedMassScale = _settings.connectedMassScale;
         }
 
         /// <summary>
@@ -281,14 +250,14 @@ namespace _Scripts
         /// </summary>
         private void ConfigureLineRenderer()
         {
-            _lineRenderer.startWidth = lineWidth;
-            _lineRenderer.endWidth = lineWidth;
-            _lineRenderer.positionCount = nodeCount + 1;
+            _lineRenderer.startWidth = _settings.lineWidth;
+            _lineRenderer.endWidth = _settings.lineWidth;
+            _lineRenderer.positionCount = _settings.nodeCount + 1;
             _lineRenderer.useWorldSpace = true;
 
-            if (lineMaterial != null)
+            if (_settings.lineMaterial != null)
             {
-                _lineRenderer.material = lineMaterial;
+                _lineRenderer.material = _settings.lineMaterial;
             }
         }
 
@@ -316,7 +285,7 @@ namespace _Scripts
             }
 
             // 最后一点为 Player 连接点位置
-            _lineRenderer.SetPosition(nodeCount, transform.position + playerAnchorOffset);
+            _lineRenderer.SetPosition(_settings.nodeCount, transform.position + _settings.playerAnchorOffset);
         }
 
         /// <summary>

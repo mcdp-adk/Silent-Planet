@@ -1,3 +1,5 @@
+using System;
+using _Scripts.Settings;
 using UnityEngine;
 
 namespace _Scripts
@@ -5,6 +7,15 @@ namespace _Scripts
     [RequireComponent(typeof(InputManager), typeof(PlayerMotor), typeof(RopeSystem))]
     public class PlayerGlue : MonoBehaviour
     {
+        #region 配置
+
+        [Header("配置")] [Tooltip("玩家运动配置")] [SerializeField]
+        private PlayerMotorSettings motorSettings;
+
+        [Tooltip("绳索系统配置")] [SerializeField] private RopeSystemSettings ropeSettings;
+
+        #endregion
+
         #region 字段
 
         private InputManager _inputManager;
@@ -21,13 +32,20 @@ namespace _Scripts
             _inputManager = GetComponent<InputManager>();
             _playerMotor = GetComponent<PlayerMotor>();
             _ropeSystem = GetComponent<RopeSystem>();
+        }
+
+        private void OnEnable()
+        {
+            // 注入配置
+            _playerMotor.Initialize(motorSettings);
+            _ropeSystem.Initialize(ropeSettings);
 
             // 连接输入系统和各个模块
             ConnectInputToMovement();
             ConnectInputToRope();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             // 断开连接
             DisconnectInputFromMovement();

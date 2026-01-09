@@ -8,7 +8,8 @@
       "mcp__UnityMCP__list_resources",
       "mcp__UnityMCP__read_resource",
       "mcp__UnityMCP__validate_script",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -64,3 +64,5 @@ Follow JetBrains Rider's default C# naming rules:
 ### 🚨 ALWAYS ADD OR UPDATE IMPORTANT DOCS HERE!
 - Project overview → Documents/project-overview.md
 - Input system guide → Documents/input-system-guide.md
+- Player motor guide → Documents/player-motor-guide.md
+- Rope system guide → Documents/rope-system-guide.md
