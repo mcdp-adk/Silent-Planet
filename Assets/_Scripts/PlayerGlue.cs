@@ -1,4 +1,3 @@
-using System;
 using _Scripts.Settings;
 using UnityEngine;
 
@@ -66,6 +65,7 @@ namespace _Scripts
                 _inputManager.OnMoveInput += _playerMotor.SetMoveInput;
                 _inputManager.OnJumpPressed += _playerMotor.OnJumpPressed;
                 _inputManager.OnJumpReleased += _playerMotor.OnJumpReleased;
+                _inputManager.OnCrouchInput += _playerMotor.ToggleCrouch;
             }
         }
 
@@ -79,6 +79,7 @@ namespace _Scripts
                 _inputManager.OnMoveInput -= _playerMotor.SetMoveInput;
                 _inputManager.OnJumpPressed -= _playerMotor.OnJumpPressed;
                 _inputManager.OnJumpReleased -= _playerMotor.OnJumpReleased;
+                _inputManager.OnCrouchInput -= _playerMotor.ToggleCrouch;
             }
         }
 

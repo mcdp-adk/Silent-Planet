@@ -2,7 +2,7 @@
 
 ## 概述
 
-PlayerMotor 是玩家角色的核心运动控制器，适用于横板 3D 游戏。使用 Rigidbody + CapsuleCollider 实现物理驱动的移动、跳跃和喷气背包功能。
+PlayerMotor 是玩家角色的核心运动控制器，适用于横板 3D 游戏。使用 Rigidbody + CapsuleCollider 实现物理驱动的移动、跳跃、喷气背包和蹲伏功能。
 
 ## 架构设计
 
@@ -130,6 +130,29 @@ if (_grounded && _frameVelocity.y <= 0f && !_jetpackActive)
 }
 ```
 
+### 蹲伏
+
+切换蹲伏状态时，动态调整碰撞体高度和中心位置：
+
+```csharp
+// 蹲伏
+_col.height = _settings.crouchHeight;
+_col.center = new Vector3(0f, _settings.crouchHeight / 2f, 0f);
+
+// 站立（需先检测头顶无障碍）
+_col.height = _standingHeight;
+_col.center = new Vector3(0f, _standingCenterY, 0f);
+```
+
+蹲伏时移动速度降低：
+
+```csharp
+float speedMultiplier = _isCrouching ? _settings.crouchSpeedMultiplier : 1f;
+float targetSpeed = inputX * _settings.maxSpeed * speedMultiplier;
+```
+
+蹲伏状态下按跳跃会先尝试站起，站起成功后需再次按跳跃才能跳跃。
+
 ## 配置参数
 
 ### 层级
@@ -173,6 +196,13 @@ if (_grounded && _frameVelocity.y <= 0f && !_jetpackActive)
 | `jetpackMaxFuel` | 2 | 喷气背包的最大燃料容量 |
 | `jetpackFuelRecovery` | 0.5 | 站在地面时燃料的恢复速率 |
 
+### 蹲伏
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `crouchHeight` | 1 | 蹲伏时碰撞体高度 |
+| `crouchSpeedMultiplier` | 0.5 | 蹲伏移动速度倍率 |
+
 ## 事件
 
 | 事件 | 参数 | 说明 |
@@ -194,6 +224,9 @@ public void OnJumpPressed();
 
 // 跳跃释放
 public void OnJumpReleased();
+
+// 切换蹲伏状态
+public void ToggleCrouch();
 ```
 
 ## 生命周期
@@ -207,9 +240,9 @@ public void OnJumpReleased();
 
 ## 调试可视化
 
-在编辑器中选中 Player 时，会显示地面检测范围的 Gizmo：
-- 绿色球体：已着地
-- 红色球体：未着地
+在编辑器中选中 Player 时，会显示检测范围的 Gizmo：
+- 红色球体：地面检测范围
+- 青色球体：头顶检测范围（仅蹲伏状态显示）
 
 ## 相关资源
 

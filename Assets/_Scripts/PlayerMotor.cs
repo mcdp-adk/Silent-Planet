@@ -62,6 +62,11 @@ namespace _Scripts
         private bool _jetpackActive;
         private float _jetpackFuel;
 
+        // 蹲伏
+        private bool _isCrouching;
+        private float _standingHeight;
+        private float _standingCenterY;
+
         // 朝向
         private bool _facingRight = true;
 
@@ -88,12 +93,16 @@ namespace _Scripts
         {
             // 配置 Rigidbody
             _rb.useGravity = false;
-            _rb.freezeRotation = true;
+            _rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
             _rb.interpolation = RigidbodyInterpolation.Interpolate;
             _rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
             // 初始化喷气背包燃料
             _jetpackFuel = _settings.jetpackMaxFuel;
+
+            // 保存站立碰撞体参数
+            _standingHeight = _col.height;
+            _standingCenterY = _col.center.y;
         }
 
         private void Update()
@@ -120,11 +129,23 @@ namespace _Scripts
         {
             if (_col == null || _settings == null) return;
 
-            // 地面检测范围
             float radius = _col.radius * 0.9f;
-            Gizmos.color = _grounded ? Color.green : Color.red;
-            Vector3 groundOrigin = transform.position + Vector3.up * _col.radius;
-            Gizmos.DrawWireSphere(groundOrigin + Vector3.down * _settings.grounderDistance, radius);
+
+            // 地面检测球体
+            Vector3 groundCheckPos = transform.position + Vector3.up * _col.radius +
+                                     Vector3.down * _settings.grounderDistance;
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(groundCheckPos, radius);
+
+            // 头顶检测球体（仅蹲伏状态，青色）
+            // 站立碰撞体顶部球心位置 = standingCenterY + standingHeight/2 - radius
+            if (_isCrouching)
+            {
+                float standingTopSphereY = _standingCenterY + _standingHeight / 2f - _col.radius;
+                Vector3 ceilingCheckPos = transform.position + Vector3.up * standingTopSphereY;
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(ceilingCheckPos, radius);
+            }
         }
 
         #endregion
@@ -144,6 +165,13 @@ namespace _Scripts
         /// </summary>
         public void OnJumpPressed()
         {
+            // 蹲伏状态下，先尝试站起
+            if (_isCrouching)
+            {
+                TryStandUp();
+                return;
+            }
+
             if (_grounded || CanUseCoyote)
             {
                 // 地面或土狼时间内：跳跃
@@ -170,6 +198,21 @@ namespace _Scripts
             {
                 // 非喷气状态下的提前释放惩罚
                 _endedJumpEarly = true;
+            }
+        }
+
+        /// <summary>
+        /// 切换蹲伏状态
+        /// </summary>
+        public void ToggleCrouch()
+        {
+            if (_isCrouching)
+            {
+                TryStandUp();
+            }
+            else
+            {
+                Crouch();
             }
         }
 
@@ -229,6 +272,7 @@ namespace _Scripts
         private void HandleHorizontalMovement()
         {
             float inputX = _moveInput.x;
+            float speedMultiplier = _isCrouching ? _settings.crouchSpeedMultiplier : 1f;
 
             if (Mathf.Approximately(inputX, 0f))
             {
@@ -239,7 +283,7 @@ namespace _Scripts
             else
             {
                 // 有输入时加速
-                float targetSpeed = inputX * _settings.maxSpeed;
+                float targetSpeed = inputX * _settings.maxSpeed * speedMultiplier;
                 _frameVelocity.x = Mathf.MoveTowards(_frameVelocity.x, targetSpeed,
                     _settings.acceleration * Time.fixedDeltaTime);
             }
@@ -318,6 +362,32 @@ namespace _Scripts
         private void ApplyMovement()
         {
             _rb.linearVelocity = _frameVelocity;
+        }
+
+        private void Crouch()
+        {
+            _isCrouching = true;
+            _col.height = _settings.crouchHeight;
+            // 保持碰撞体底部贴地：center.y = height / 2
+            _col.center = new Vector3(0f, _settings.crouchHeight / 2f, 0f);
+        }
+
+        private void TryStandUp()
+        {
+            // 检测头顶是否有障碍物
+            float heightDiff = _standingHeight - _settings.crouchHeight;
+            Vector3 origin = transform.position + Vector3.up * _settings.crouchHeight;
+
+            if (Physics.SphereCast(origin, _col.radius * 0.9f, Vector3.up, out _, heightDiff,
+                    _settings.environmentLayer, QueryTriggerInteraction.Ignore))
+            {
+                // 头顶有障碍，无法站起
+                return;
+            }
+
+            _isCrouching = false;
+            _col.height = _standingHeight;
+            _col.center = new Vector3(0f, _standingCenterY, 0f);
         }
 
         #endregion

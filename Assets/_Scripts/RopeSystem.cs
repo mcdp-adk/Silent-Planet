@@ -177,7 +177,7 @@ namespace _Scripts
             var rb = nodeObj.AddComponent<Rigidbody>();
             rb.mass = _settings.nodeMass;
             rb.linearDamping = _settings.nodeDamping;
-            rb.constraints = RigidbodyConstraints.FreezeRotation;
+            rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
 
             // 锚点节点设为 Kinematic
             if (index == 0)

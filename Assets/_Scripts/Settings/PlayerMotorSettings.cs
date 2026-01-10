@@ -77,5 +77,17 @@ namespace _Scripts.Settings
         public float jetpackFuelRecovery = 0.5f;
 
         #endregion
+
+        #region 蹲伏
+
+        [Header("蹲伏")]
+        [Tooltip("蹲伏时碰撞体高度")]
+        public float crouchHeight = 1f;
+
+        [Tooltip("蹲伏移动速度倍率")]
+        [Range(0f, 1f)]
+        public float crouchSpeedMultiplier = 0.5f;
+
+        #endregion
     }
 }
