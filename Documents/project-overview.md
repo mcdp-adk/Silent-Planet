@@ -20,9 +20,13 @@ Silent Planet 是一个 3D 横向卷轴游戏项目，采用模块化架构设�
 - **模块 (Module)**: 专注的单一职责组件
   - `InputManager`: 输入处理模块
   - `PlayerMotor`: 玩家移动逻辑模块
+  - `RopeSystem`: 绳索系统模块
 
 - **粘合代码 (Glue)**: 模块间的协调层
   - `PlayerGlue`: 连接输入系统和移动系统
+
+- **编辑器工具 (Editor)**
+  - `BlockEditorWindow`: 关卡方块编辑器
 
 ### 关键特性
 
@@ -34,20 +38,30 @@ Silent Planet 是一个 3D 横向卷轴游戏项目，采用模块化架构设�
 
 ```
 Assets/
-├── _Scripts/              # 核心游戏脚本
-│   ├── InputManager.cs    # 输入管理器
-│   ├── PlayerMotor.cs     # 玩家移动控制器
-│   ├── PlayerGlue.cs      # 输入与移动的粘合层
-│   └── InputSystem_Actions.cs  # Unity Input System 自动生成代码
-├── Scenes/                # 游戏场景
-│   ├── SampleScene.unity  # 示例场景
-│   └── TestPlayer.unity   # 玩家测试场景
-├── Settings/              # 项目设置
-│   └── InputSystem_Actions.inputactions  # 输入配置
-└── Plugins/               # 第三方插件
-    ├── Tarodev 2D Controller/  # 2D 控制器参考插件
+├── _Scripts/                      # 核心游戏脚本
+│   ├── InputManager.cs            # 输入管理器
+│   ├── PlayerMotor.cs             # 玩家移动控制器
+│   ├── PlayerGlue.cs              # 输入与移动的粘合层
+│   ├── RopeSystem.cs              # 绳索系统
+│   ├── InputSystem_Actions.cs     # Unity Input System 自动生成代码
+│   ├── Editor/                    # 编辑器工具
+│   │   └── BlockEditorWindow.cs   # 关卡编辑器窗口
+│   └── Settings/                  # ScriptableObject 配置类
+│       ├── PlayerMotorSettings.cs
+│       ├── RopeSystemSettings.cs
+│       └── BlockEditorSettings.cs
+├── Scenes/                        # 游戏场景
+│   ├── Level 0.unity              # 主关卡
+│   └── TestPlayer.unity           # 玩家测试场景
+├── Settings/                      # 配置资产
+│   ├── InputSystem_Actions.inputactions
+│   ├── DefaultPlayerMotorSettings.asset
+│   ├── DefaultRopeSystemSettings.asset
+│   └── BlockEditorSettings.asset
+└── Plugins/                       # 第三方插件
+    ├── Tarodev 2D Controller/     # 2D 控制器参考插件
     ├── Gridbox Prototype Materials/  # 原型材质
-    └── Lean GUI 相关插件    # UI 工具
+    └── Lean GUI 相关插件          # UI 工具
 ```
 
 ## 技术栈
@@ -109,4 +123,7 @@ Assets/
 
 ## 相关文档
 
-- [输入系统指南](./input-system-guide.md) - 详细的输入系统使用说明
+- [输入系统指南](./input-system-guide.md) - 输入系统架构和使用说明
+- [玩家运动系统指南](./player-motor-guide.md) - PlayerMotor 运动机制详解
+- [绳索系统指南](./rope-system-guide.md) - 动态弹簧绳索系统
+- [关卡编辑器指南](./block-editor-guide.md) - BlockEditor 编辑器工具
