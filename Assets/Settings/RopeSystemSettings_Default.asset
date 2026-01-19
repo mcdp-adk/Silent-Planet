@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb27a9ec8e2c13c47b5a66e6743efc66, type: 3}
+  m_Name: RopeSystemSettings_Default
+  m_EditorClassIdentifier: 
+  nodeCount: 20
+  nodeSpacing: 0.5
+  nodeMass: 0.1
+  nodeDamping: 1
+  springStrength: 1000
+  springDamper: 0.2
+  colliderRadius: 0.2
+  ropeLayer:
+    serializedVersion: 2
+    m_Bits: 8192
+  playerAnchorOffset: {x: 0, y: 1, z: 0}
+  playerSpringStrength: 100
+  playerSpringDamper: 0.2
+  playerMassScale: 1
+  connectedMassScale: 1
+  gizmoColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  lineWidth: 0.1
+  lineMaterial: {fileID: 2100000, guid: 69c3c648559bfd34eaae3ff327107596, type: 2}

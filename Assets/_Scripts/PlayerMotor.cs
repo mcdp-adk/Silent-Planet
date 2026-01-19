@@ -1,0 +1,395 @@
+using System;
+using _Scripts.Settings;
+using UnityEngine;
+
+namespace _Scripts
+{
+    /// <summary>
+    /// 玩家运动控制器 - 横板 3D 游戏
+    /// 使用 Rigidbody + CapsuleCollider
+    /// </summary>
+    [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
+    public class PlayerMotor : MonoBehaviour
+    {
+        #region 配置
+
+        private PlayerMotorSettings _settings;
+
+        public void Initialize(PlayerMotorSettings settings)
+        {
+            _settings = settings;
+        }
+
+        #endregion
+
+        #region 事件
+
+        /// <summary>
+        /// 落地状态变化事件 (isGrounded, impactVelocity)
+        /// </summary>
+        public event Action<bool, float> GroundedChanged;
+
+        /// <summary>
+        /// 跳跃事件
+        /// </summary>
+        public event Action Jumped;
+
+        #endregion
+
+        #region 私有字段
+
+        // 组件引用
+        private Rigidbody _rb;
+        private CapsuleCollider _col;
+
+        // 输入
+        private Vector2 _moveInput;
+
+        // 移动
+        private Vector3 _frameVelocity;
+        private float _time;
+
+        // 地面检测
+        private bool _grounded;
+        private float _frameLeftGrounded = float.MinValue;
+
+        // 跳跃
+        private bool _jumpToConsume;
+        private bool _endedJumpEarly;
+        private bool _coyoteUsable;
+
+        // 喷气背包
+        private bool _jetpackActive;
+        private float _jetpackFuel;
+
+        // 蹲伏
+        private bool _isCrouching;
+        private float _standingHeight;
+        private float _standingCenterY;
+
+        // 朝向
+        private bool _facingRight = true;
+
+        #endregion
+
+        #region 计算属性
+
+        /// <summary>
+        /// 是否可使用土狼时间跳跃
+        /// </summary>
+        private bool CanUseCoyote => _coyoteUsable && !_grounded && _time < _frameLeftGrounded + _settings.coyoteTime;
+
+        #endregion
+
+        #region Mono 生命周期
+
+        private void Awake()
+        {
+            _rb = GetComponent<Rigidbody>();
+            _col = GetComponent<CapsuleCollider>();
+        }
+
+        private void Start()
+        {
+            // 配置 Rigidbody
+            _rb.useGravity = false;
+            _rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
+            _rb.interpolation = RigidbodyInterpolation.Interpolate;
+            _rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+
+            // 初始化喷气背包燃料
+            _jetpackFuel = _settings.jetpackMaxFuel;
+
+            // 保存站立碰撞体参数
+            _standingHeight = _col.height;
+            _standingCenterY = _col.center.y;
+        }
+
+        private void Update()
+        {
+            _time += Time.deltaTime;
+        }
+
+        private void FixedUpdate()
+        {
+            // 读取物理引擎结果
+            _frameVelocity = _rb.linearVelocity;
+
+            CheckCollisions();
+            HandleJump();
+            HandleHorizontalMovement();
+            HandleGravity();
+            HandleJetpack();
+            HandleFacing();
+            HandleFuelRecovery();
+            ApplyMovement();
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (_col == null || _settings == null) return;
+
+            float radius = _col.radius * 0.9f;
+
+            // 地面检测球体
+            Vector3 groundCheckPos = transform.position + Vector3.up * _col.radius +
+                                     Vector3.down * _settings.grounderDistance;
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(groundCheckPos, radius);
+
+            // 头顶检测球体（仅蹲伏状态，青色）
+            // 站立碰撞体顶部球心位置 = standingCenterY + standingHeight/2 - radius
+            if (_isCrouching)
+            {
+                float standingTopSphereY = _standingCenterY + _standingHeight / 2f - _col.radius;
+                Vector3 ceilingCheckPos = transform.position + Vector3.up * standingTopSphereY;
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(ceilingCheckPos, radius);
+            }
+        }
+
+        #endregion
+
+        #region 公共接口
+
+        /// <summary>
+        /// 设置移动输入
+        /// </summary>
+        public void SetMoveInput(Vector2 input)
+        {
+            _moveInput = input;
+        }
+
+        /// <summary>
+        /// 跳跃按下
+        /// </summary>
+        public void OnJumpPressed()
+        {
+            // 蹲伏状态下，先尝试站起
+            if (_isCrouching)
+            {
+                TryStandUp();
+                return;
+            }
+
+            if (_grounded || CanUseCoyote)
+            {
+                // 地面或土狼时间内：跳跃
+                _jumpToConsume = true;
+            }
+            else if (_jetpackFuel > 0)
+            {
+                // 空中且有燃料：启动喷气背包
+                _jetpackActive = true;
+            }
+        }
+
+        /// <summary>
+        /// 跳跃释放
+        /// </summary>
+        public void OnJumpReleased()
+        {
+            if (_jetpackActive)
+            {
+                // 关闭喷气背包
+                _jetpackActive = false;
+            }
+            else if (!_grounded && _rb.linearVelocity.y > 0)
+            {
+                // 非喷气状态下的提前释放惩罚
+                _endedJumpEarly = true;
+            }
+        }
+
+        /// <summary>
+        /// 切换蹲伏状态
+        /// </summary>
+        public void ToggleCrouch()
+        {
+            if (_isCrouching)
+            {
+                TryStandUp();
+            }
+            else
+            {
+                Crouch();
+            }
+        }
+
+        #endregion
+
+        #region 私有方法
+
+        private void CheckCollisions()
+        {
+            // 地面检测 - 从胶囊体底部向下投射
+            Vector3 origin = transform.position + Vector3.up * _col.radius;
+            float radius = _col.radius * 0.9f;
+
+            bool groundHit = Physics.SphereCast(
+                origin,
+                radius,
+                Vector3.down,
+                out _,
+                _settings.grounderDistance,
+                _settings.environmentLayer,
+                QueryTriggerInteraction.Ignore
+            );
+
+            // 着地状态变化处理
+            if (!_grounded && groundHit)
+            {
+                // 刚着地
+                _grounded = true;
+                _coyoteUsable = true;
+                _endedJumpEarly = false;
+                GroundedChanged?.Invoke(true, Mathf.Abs(_frameVelocity.y));
+            }
+            else if (_grounded && !groundHit)
+            {
+                // 刚离地
+                _grounded = false;
+                _frameLeftGrounded = _time;
+                GroundedChanged?.Invoke(false, 0f);
+            }
+        }
+
+        private void HandleJump()
+        {
+            if (!_jumpToConsume) return;
+
+            if (_grounded || CanUseCoyote)
+            {
+                _endedJumpEarly = false;
+                _coyoteUsable = false;
+                _frameVelocity.y = _settings.jumpPower;
+                Jumped?.Invoke();
+            }
+
+            _jumpToConsume = false;
+        }
+
+        private void HandleHorizontalMovement()
+        {
+            float inputX = _moveInput.x;
+            float speedMultiplier = _isCrouching ? _settings.crouchSpeedMultiplier : 1f;
+
+            if (Mathf.Approximately(inputX, 0f))
+            {
+                // 无输入时减速
+                float deceleration = _grounded ? _settings.groundDeceleration : _settings.airDeceleration;
+                _frameVelocity.x = Mathf.MoveTowards(_frameVelocity.x, 0f, deceleration * Time.fixedDeltaTime);
+            }
+            else
+            {
+                // 有输入时加速
+                float targetSpeed = inputX * _settings.maxSpeed * speedMultiplier;
+                _frameVelocity.x = Mathf.MoveTowards(_frameVelocity.x, targetSpeed,
+                    _settings.acceleration * Time.fixedDeltaTime);
+            }
+
+            // 横板游戏锁定 Z 轴
+            _frameVelocity.z = 0f;
+        }
+
+        private void HandleGravity()
+        {
+            if (_grounded && _frameVelocity.y <= 0f && !_jetpackActive)
+            {
+                // 在地面上时施加着地力（防止在斜坡上滑动）
+                _frameVelocity.y = _settings.groundingForce;
+            }
+            else
+            {
+                float gravity = _settings.fallAcceleration;
+
+                // 提前释放跳跃时增加重力
+                if (_endedJumpEarly && _frameVelocity.y > 0)
+                {
+                    gravity *= _settings.jumpEndEarlyGravityModifier;
+                }
+
+                _frameVelocity.y = Mathf.MoveTowards(
+                    _frameVelocity.y,
+                    -_settings.maxFallSpeed,
+                    gravity * Time.fixedDeltaTime
+                );
+            }
+        }
+
+        private void HandleJetpack()
+        {
+            if (_jetpackActive && _jetpackFuel > 0)
+            {
+                // 应用推力（惯性抵抗方式）
+                _frameVelocity.y += _settings.jetpackForce * Time.fixedDeltaTime;
+
+                // 限制最大上升速度
+                _frameVelocity.y = Mathf.Min(_frameVelocity.y, _settings.maxRiseSpeed);
+
+                // 消耗燃料
+                _jetpackFuel -= Time.fixedDeltaTime;
+
+                if (_jetpackFuel <= 0)
+                {
+                    _jetpackFuel = 0;
+                    _jetpackActive = false;
+                }
+            }
+        }
+
+        private void HandleFuelRecovery()
+        {
+            if (_grounded && !_jetpackActive && _jetpackFuel < _settings.jetpackMaxFuel)
+            {
+                _jetpackFuel += _settings.jetpackFuelRecovery * Time.fixedDeltaTime;
+                _jetpackFuel = Mathf.Min(_jetpackFuel, _settings.jetpackMaxFuel);
+            }
+        }
+
+        private void HandleFacing()
+        {
+            if (Mathf.Approximately(_moveInput.x, 0f)) return;
+
+            bool shouldFaceRight = _moveInput.x > 0f;
+            if (shouldFaceRight == _facingRight) return;
+
+            _facingRight = shouldFaceRight;
+            float targetYRotation = _facingRight ? 90f : -90f;
+            transform.rotation = Quaternion.Euler(0f, targetYRotation, 0f);
+        }
+
+        private void ApplyMovement()
+        {
+            _rb.linearVelocity = _frameVelocity;
+        }
+
+        private void Crouch()
+        {
+            _isCrouching = true;
+            _col.height = _settings.crouchHeight;
+            // 保持碰撞体底部贴地：center.y = height / 2
+            _col.center = new Vector3(0f, _settings.crouchHeight / 2f, 0f);
+        }
+
+        private void TryStandUp()
+        {
+            // 检测头顶是否有障碍物
+            float heightDiff = _standingHeight - _settings.crouchHeight;
+            Vector3 origin = transform.position + Vector3.up * _settings.crouchHeight;
+
+            if (Physics.SphereCast(origin, _col.radius * 0.9f, Vector3.up, out _, heightDiff,
+                    _settings.environmentLayer, QueryTriggerInteraction.Ignore))
+            {
+                // 头顶有障碍，无法站起
+                return;
+            }
+
+            _isCrouching = false;
+            _col.height = _standingHeight;
+            _col.center = new Vector3(0f, _standingCenterY, 0f);
+        }
+
+        #endregion
+    }
+}

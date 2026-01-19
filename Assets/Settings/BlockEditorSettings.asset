@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2054140b0f77ea4ba4b824b6b168570, type: 3}
+  m_Name: BlockEditorSettings
+  m_EditorClassIdentifier: 
+  blockPrefabs:
+  - {fileID: 8812930871314400798, guid: 9de0978d93cf86546a80a426c661c7cb, type: 3}
+  - {fileID: 5344290034081868151, guid: 9a52c8381d0bec24ea39fedad1712bff, type: 3}
+  - {fileID: 7257039640255857401, guid: 6b90c31fbf5c0584ba9c3f74707755a3, type: 3}
+  - {fileID: 7067884912745774065, guid: dbede0a87543b5747a6c99061b15e95e, type: 3}
+  visibleLayers:
+    serializedVersion: 2
+    m_Bits: 4096
+  depth: 2
+  placeColor: {r: 0, g: 1, b: 0, a: 0.3}
+  deleteColor: {r: 1, g: 0, b: 0, a: 0.3}
