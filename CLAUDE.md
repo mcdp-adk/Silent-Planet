@@ -15,11 +15,6 @@
 - C# Default
 - Module-Glue Pattern architecture
 
-## Skills
-- `/unity-csharp` - C# 脚本编写规范
-- `/unity-debug` - Unity 错误诊断
-- `/doc-manager` - 项目文档管理
-
 ## Documentation
 Location: `/Documents`, Language: Chinese
 
