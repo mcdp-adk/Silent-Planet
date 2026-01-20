@@ -23,7 +23,7 @@ Silent Planet 是一个 3D 横向卷轴游戏项目，采用模块化架构设�
   - `RopeSystem`: 绳索系统模块
 
 - **粘合代码 (Glue)**: 模块间的协调层
-  - `PlayerGlue`: 连接输入系统和移动系统
+  - `PlayerGlue`: 连接输入系统与运动、绳索模块
 
 - **编辑器工具 (Editor)**
   - `BlockEditorWindow`: 关卡方块编辑器
@@ -69,7 +69,7 @@ Assets/
 ### 核心系统
 
 - **Unity Input System**: 新版输入系统，支持多平台输入设备
-- **CharacterController**: Unity 内置角色控制器组件
+- **Rigidbody + CapsuleCollider**: 物理驱动的角色控制
 - **事件系统**: C# Action 用于模块间通信
 
 ### 第三方资源
@@ -113,7 +113,7 @@ Assets/
 - **方法**: `PascalCase` (如 `OnMove()`)
 - **私有字段**: `_camelCase` (如 `_characterController`)
 - **序列化字段**: `camelCase` (如 `moveSpeed`)
-- **常量**: `UPPER_CASE` (如 `MAX_HEALTH`)
+- **常量**: `PascalCase` (如 `GridName`)
 
 ### 代码组织
 

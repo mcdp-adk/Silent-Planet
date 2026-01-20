@@ -41,7 +41,7 @@ Scene
 | `Assets/_Scripts/Settings/RopeSystemSettings.cs` | 配置类定义 |
 | `Assets/_Scripts/Settings/DefaultRopeSystemSettings.asset` | 默认配置资产 |
 
-配置由 `PlayerGlue` 在 Awake 中注入：
+配置由 `PlayerGlue` 在 OnEnable 中注入：
 
 ```csharp
 // PlayerGlue.cs

@@ -27,7 +27,7 @@ Player GameObject
 | `Assets/_Scripts/Settings/PlayerMotorSettings.cs` | 配置类定义 |
 | `Assets/_Scripts/Settings/DefaultPlayerMotorSettings.asset` | 默认配置资产 |
 
-配置由 `PlayerGlue` 在 Awake 中注入：
+配置由 `PlayerGlue` 在 OnEnable 中注入：
 
 ```csharp
 // PlayerGlue.cs
@@ -233,8 +233,8 @@ public void ToggleCrouch();
 
 | 阶段 | 操作 |
 |------|------|
-| `Awake` | (无操作，等待配置注入) |
-| `Start` | 获取组件引用，配置 Rigidbody，初始化燃料 |
+| `Awake` | 获取 Rigidbody 和 CapsuleCollider 组件引用 |
+| `Start` | 配置 Rigidbody 参数，初始化燃料，保存碰撞体原始参数 |
 | `Update` | 更新时间计数 |
 | `FixedUpdate` | 物理计算：碰撞检测 → 跳跃 → 水平移动 → 重力 → 喷气背包 → 朝向 → 燃料恢复 → 应用速度 |
 

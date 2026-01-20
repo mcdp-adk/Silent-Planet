@@ -228,8 +228,8 @@ private void ConnectInputToMovement()
 ### 职责
 
 - 获取 `InputManager` 和 `PlayerMotor` 的组件引用
-- 在 `Awake()` 中连接输入事件到移动方法
-- 在 `OnDestroy()` 中断开所有事件连接
+- 在 `OnEnable()` 中连接输入事件到移动方法
+- 在 `OnDisable()` 中断开所有事件连接
 
 ### 代码示例
 
@@ -241,6 +241,7 @@ private void ConnectInputToMovement()
         _inputManager.OnMoveInput += _playerMotor.SetMoveInput;
         _inputManager.OnJumpPressed += _playerMotor.OnJumpPressed;
         _inputManager.OnJumpReleased += _playerMotor.OnJumpReleased;
+        _inputManager.OnCrouchInput += _playerMotor.ToggleCrouch;
     }
 }
 
@@ -251,6 +252,7 @@ private void DisconnectInputFromMovement()
         _inputManager.OnMoveInput -= _playerMotor.SetMoveInput;
         _inputManager.OnJumpPressed -= _playerMotor.OnJumpPressed;
         _inputManager.OnJumpReleased -= _playerMotor.OnJumpReleased;
+        _inputManager.OnCrouchInput -= _playerMotor.ToggleCrouch;
     }
 }
 ```
@@ -259,8 +261,8 @@ private void DisconnectInputFromMovement()
 
 ### 事件订阅
 
-- ✅ 在 `Awake()` 或 `Start()` 中订阅事件
-- ✅ 在 `OnDestroy()` 或 `OnDisable()` 中取消订阅
+- ✅ 在 `OnEnable()` 中订阅事件
+- ✅ 在 `OnDisable()` 中取消订阅
 - ✅ 使用 `?.Invoke()` 安全调用事件
 - ❌ 避免在 `Update()` 中订阅/取消订阅
 
